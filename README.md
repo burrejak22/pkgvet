@@ -15,7 +15,7 @@ and in PR reviews to sanity-check what's being added.
 ## Install
 
 ```bash
-npm install -g pkgvet
+npm install -g @burrejak22/pkgvet
 ```
 
 Or run from source (no dependencies, just node):
