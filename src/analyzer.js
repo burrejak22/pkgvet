@@ -15,6 +15,9 @@ async function analyze(name, wantedVersion) {
     ...checks.checkDownloads(downloads),
     ...checks.checkDeps(meta),
     ...checks.checkRepoLicense(meta),
+    ...checks.checkRepoMismatch(name, meta),
+    ...checks.checkLicenseChange(doc, version),
+    ...checks.checkTagConfusion(doc),
   ];
   findings.sort((a, b) => b.score - a.score);
   const score = Math.min(100, findings.reduce((s, f) => s + f.score, 0));

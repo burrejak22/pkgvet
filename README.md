@@ -80,6 +80,11 @@ evillodash@1.0.0  (12,403 downloads last month)
 - **Dependency sprawl** — every dependency is someone else's code in your
   supply chain.
 - **Missing repo / license** — can't audit what you can't find.
+- **Repo mismatch** — the linked repository doesn't reference the package
+  name (repackaged code signal).
+- **License changes** — the license changed between versions (relicensing
+  drama deserves a look).
+- **Dist-tag confusion** — the `latest` tag isn't the highest version.
 
 ## Scoring
 

@@ -139,6 +139,70 @@ function checkRepoLicense(meta) {
   return out;
 }
 
+function checkRepoMismatch(name, meta) {
+  const repo = meta.repository;
+  if (!repo) return [];
+  const url = typeof repo === "string" ? repo : repo.url || "";
+  if (!url) return [];
+  const base = name.startsWith("@") ? name.split("/")[1] : name;
+  // the repo url should mention the package name somewhere — repackaged code often doesn't
+  if (!url.toLowerCase().includes(base.toLowerCase())) {
+    const short = url.length > 80 ? url.slice(0, 80) + "..." : url;
+    return [{
+      code: "REPO_MISMATCH",
+      score: 15,
+      detail: `repository url (${short}) doesn't reference "${base}" — possibly repackaged code`,
+    }];
+  }
+  return [];
+}
+
+function semverCmp(a, b) {
+  // good enough for ordering releases; prereleases sort below their release
+  const pa = a.split("-")[0].split(".").map(Number);
+  const pb = b.split("-")[0].split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    const x = pa[i] || 0, y = pb[i] || 0;
+    if (x !== y) return x - y;
+  }
+  const aPre = a.includes("-"), bPre = b.includes("-");
+  if (aPre && !bPre) return -1;
+  if (!aPre && bPre) return 1;
+  return 0;
+}
+
+function checkLicenseChange(doc, version) {
+  const versions = Object.keys(doc.versions || {});
+  const idx = versions.indexOf(version);
+  if (idx <= 0) return [];
+  const prev = doc.versions[versions[idx - 1]] || {};
+  const cur = doc.versions[version] || {};
+  const norm = (l) => String(l || "").toLowerCase().trim();
+  if (norm(cur.license) !== norm(prev.license) && (cur.license || prev.license)) {
+    return [{
+      code: "LICENSE_CHANGED",
+      score: 10,
+      detail: `license changed from "${prev.license || "none"}" to "${cur.license || "none"}" between versions — check why`,
+    }];
+  }
+  return [];
+}
+
+function checkTagConfusion(doc) {
+  const latest = doc["dist-tags"] && doc["dist-tags"].latest;
+  const versions = Object.keys(doc.versions || {});
+  if (!latest || versions.length < 2) return [];
+  const max = versions.reduce((m, v) => (semverCmp(v, m) > 0 ? v : m), versions[0]);
+  if (latest !== max) {
+    return [{
+      code: "TAG_CONFUSION",
+      score: 8,
+      detail: `latest tag (${latest}) isn't the highest version (${max}) — unusual, worth a glance`,
+    }];
+  }
+  return [];
+}
+
 function bandFor(score) {
   if (score >= 70) return "CRITICAL";
   if (score >= 45) return "HIGH";
@@ -156,6 +220,9 @@ module.exports = {
   checkTyposquat,
   checkDeps,
   checkRepoLicense,
+  checkRepoMismatch,
+  checkLicenseChange,
+  checkTagConfusion,
   levenshtein,
   bandFor,
 };

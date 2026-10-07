@@ -60,4 +60,30 @@ let threw = false;
 try { checks.pickVersion(evilDoc, "9.9.9"); } catch { threw = true; }
 check("unknown version throws", threw);
 
+// repo mismatch
+check("mismatched repo url flagged",
+  checks.checkRepoMismatch("my-package", { repository: { url: "https://github.com/someone/totally-different" } })
+    .some((f) => f.code === "REPO_MISMATCH"));
+check("matching repo url clean",
+  checks.checkRepoMismatch("my-package", { repository: { url: "https://github.com/someone/my-package" } }).length === 0);
+
+// license change between versions
+const relicensed = {
+  versions: { "1.0.0": { license: "MIT" }, "2.0.0": { license: "GPL-3.0" } },
+};
+check("license change flagged",
+  checks.checkLicenseChange(relicensed, "2.0.0").some((f) => f.code === "LICENSE_CHANGED"));
+check("same license clean",
+  checks.checkLicenseChange({ versions: { "1.0.0": { license: "MIT" }, "2.0.0": { license: "MIT" } } }, "2.0.0").length === 0);
+
+// dist-tag confusion
+const confused = {
+  "dist-tags": { latest: "1.0.0" },
+  versions: { "1.0.0": {}, "2.0.0": {} },
+};
+check("tag confusion flagged",
+  checks.checkTagConfusion(confused).some((f) => f.code === "TAG_CONFUSION"));
+check("sane tags clean",
+  checks.checkTagConfusion({ "dist-tags": { latest: "2.0.0" }, versions: { "1.0.0": {}, "2.0.0": {} } }).length === 0);
+
 process.exit(failed ? 1 : 0);
